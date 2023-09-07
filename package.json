@@ -1,0 +1,20 @@
+{
+  "name": "expr",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "generate": "nearleyc grammar.ne -o grammar.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1447.0",
+    "axios": "^1.5.0",
+    "expr-eval": "^2.0.2",
+    "moo": "^0.5.2",
+    "nearley": "^2.20.1"
+  }
+}
