@@ -98,11 +98,7 @@ split(" 1, 2 ")
             <code>[0:1]</code>
         </td>
     </tr>
-</table>
-
-## The grammar that currently working on 
-<table>
-    <tr>
+        <tr>
         <td>String</td>
         <td>
             <code>+</code> (concatenation), <code>contains</code>, <code>startsWith</code>, <code>endsWith</code>
@@ -114,6 +110,11 @@ split(" 1, 2 ")
             <code>matches</code>
         </td>
     </tr>
+
+</table>
+
+## The grammar that currently working on 
+<table>
     <tr>
         <td>Range</td>
         <td>
