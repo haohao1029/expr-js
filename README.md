@@ -2,11 +2,13 @@
 
 The aim of this project is to build a 1 line web expression editor, inspired by https://expr.medv.io/playground.
 
-With this expressions editor, admin can define complex expression & logic without the help of developer.
+With this expression editor, admin can define complex expression & logic without the help of developer.
+
 ## Example Use Case
 ```javascript
 sum([1,2,3,4,5]) == 15 ? true : false
 split(" 1, 2 ")
+
 ```
 
 ## Supported Literals
@@ -81,16 +83,25 @@ split(" 1, 2 ")
             <code>?:</code> (ternary), <code>??</code> (nil coalescing)
         </td>
     </tr>
-</table>
-
-## The grammar that currently working on 
-<table>
-    <tr>
+        <tr>
         <td>Membership</td>
         <td>
             <code>[]</code>, <code>.</code>, <code>?.</code>, <code>in</code>
         </td>
     </tr>
+    <tr>
+        <td>Slice</td>
+        <td>
+            <code>[:]</code>
+            <code>[2:]</code>
+            <code>[:1]</code>
+            <code>[0:1]</code>
+        </td>
+    </tr>
+</table>
+
+## The grammar that currently working on 
+<table>
     <tr>
         <td>String</td>
         <td>
@@ -107,12 +118,6 @@ split(" 1, 2 ")
         <td>Range</td>
         <td>
             <code>..</code>
-        </td>
-    </tr>
-    <tr>
-        <td>Slice</td>
-        <td>
-            <code>[:]</code>
         </td>
     </tr>
     <tr>
