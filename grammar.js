@@ -8,11 +8,9 @@ const moo = require("moo");
 const lexer = moo.compile({
     exponent: ["^", "**"],
     additive_operator: ["+", "-"],
-    nullish_coalescing_operator: "??",
     multiplicative_operator: ["*", "/", "%"],
-    comparison_operator: ["<", "<=", ">", ">=", "==", "!="],
-    dot: ".",
-    optional_chaining: "?.",
+    comparison_operator: ["<", "<=", ">", ">=", "==", "!=", "??"],
+    dot_member_operator: [".", "?."],
     ws: /[ \t]+/,
     nl: { match: "\n", lineBreaks: true },
     question_mark: "?",
@@ -109,19 +107,42 @@ var grammar = {
     {"name": "ternary_expr", "symbols": ["base_expr", "_", (lexer.has("question_mark") ? {type: "question_mark"} : question_mark), "_", "ternary_expr", "_", (lexer.has("colon") ? {type: "colon"} : colon), "_", "ternary_expr"], "postprocess": d => ({ type: "ternary_node", condition: d[0], trueExpr: d[4], falseExpr: d[8] })},
     {"name": "ternary_expr", "symbols": ["base_expr"], "postprocess": id},
     {"name": "base_expr", "symbols": ["data_type"], "postprocess": id},
-    {"name": "base_expr", "symbols": ["nullish_coalescing_expr"], "postprocess": id},
     {"name": "base_expr", "symbols": ["comparison_expr"], "postprocess": id},
     {"name": "base_expr", "symbols": ["additive_expr"], "postprocess": id},
-    {"name": "base_expr", "symbols": ["member_expr"], "postprocess": id},
-    {"name": "nullish_coalescing_expr", "symbols": ["comparison_expr"], "postprocess": id},
-    {"name": "nullish_coalescing_expr", "symbols": ["nullish_coalescing_expr", "_", (lexer.has("nullish_coalescing_operator") ? {type: "nullish_coalescing_operator"} : nullish_coalescing_operator), "_", "comparison_expr"], "postprocess": d => ({ type: "binary_node", operator: d[2].value, left: d[0], right: d[4] })},
+    {"name": "data_type", "symbols": ["dot_member_operator"], "postprocess": id},
+    {"name": "data_type", "symbols": ["call_statement"], "postprocess": id},
     {"name": "data_type", "symbols": ["nil"], "postprocess": id},
     {"name": "data_type", "symbols": ["number"], "postprocess": id},
     {"name": "data_type", "symbols": ["string_literal"], "postprocess": id},
     {"name": "data_type", "symbols": ["array"], "postprocess": id},
     {"name": "data_type", "symbols": ["boolean_literal"], "postprocess": id},
     {"name": "data_type", "symbols": ["map"], "postprocess": id},
-    {"name": "data_type", "symbols": ["call_statement"], "postprocess": id},
+    {"name": "bracket_operator", "symbols": ["dot_member_operator", {"literal":"["}, "_", "bracket_value", "_", {"literal":"]"}], "postprocess":  d => ({
+            type: "member_node",
+            node: d[0],
+            property: d[3]
+        }) },
+    {"name": "bracket_value", "symbols": ["string_literal"], "postprocess": id},
+    {"name": "bracket_value", "symbols": ["number"], "postprocess": id},
+    {"name": "bracket_value", "symbols": [(lexer.has("colon") ? {type: "colon"} : colon), "_", "number"], "postprocess": d => ({ type: "slice_node", from: null, to: d[2] })},
+    {"name": "bracket_value", "symbols": ["number", "_", (lexer.has("colon") ? {type: "colon"} : colon)], "postprocess": d => ({ type: "slice_node", from: d[0], to: null })},
+    {"name": "bracket_value", "symbols": ["number", "_", (lexer.has("colon") ? {type: "colon"} : colon), "_", "number"], "postprocess": d => ({ type: "slice_node", from: d[0], to: d[4] })},
+    {"name": "bracket_value", "symbols": [(lexer.has("colon") ? {type: "colon"} : colon)], "postprocess": d => ({ type: "slice_node", from: null, to: null })},
+    {"name": "dot_member_operator", "symbols": ["dot_member_base_expression", (lexer.has("dot_member_operator") ? {type: "dot_member_operator"} : dot_member_operator), "identifier"], "postprocess":  d => ({
+            type: "member_node",
+            node: d[0],
+            property: d[2].value,
+            optional: d[1].type === "dot_member_operator" && d[1].value === "?."
+        }) },
+    {"name": "dot_member_operator", "symbols": ["dot_member_base_expression", {"literal":"["}, "_", "bracket_value", "_", {"literal":"]"}], "postprocess":  d => ({
+            type: "member_node",
+            node: d[0],
+            property: d[3],
+        }) },
+    {"name": "dot_member_base_expression", "symbols": ["dot_member_operator"], "postprocess": id},
+    {"name": "dot_member_base_expression", "symbols": ["identifier"], "postprocess": id},
+    {"name": "dot_member_base_expression", "symbols": ["map"], "postprocess": id},
+    {"name": "dot_member_base_expression", "symbols": ["array"], "postprocess": id},
     {"name": "comparison_expr", "symbols": ["additive_expr"], "postprocess": id},
     {"name": "comparison_expr", "symbols": ["comparison_expr", "_", (lexer.has("comparison_operator") ? {type: "comparison_operator"} : comparison_operator), "_", "additive_expr"], "postprocess": d => ({ type: "binary_node", operator: d[2].value, left: d[0], right: d[4] })},
     {"name": "additive_expr", "symbols": ["multiplicative_expr"], "postprocess": id},
@@ -133,12 +154,6 @@ var grammar = {
     {"name": "primary_expr", "symbols": [{"literal":"("}, "_", "expression", "_", {"literal":")"}], "postprocess": d => d[2]},
     {"name": "primary_expr", "symbols": [{"literal":"!"}, "expression"], "postprocess": d => ({ type: "unary_node", operator: "!", operand: d[1] })},
     {"name": "primary_expr", "symbols": ["data_type"], "postprocess": id},
-    {"name": "member_expr", "symbols": ["base_expr", "_", (lexer.has("dot") ? {type: "dot"} : dot), "_", "identifier"], "postprocess": 
-        d => ({ type: "member_node", object: d[0], property: d[4] })
-                },
-    {"name": "member_expr", "symbols": ["member_expr", "_", (lexer.has("dot") ? {type: "dot"} : dot), "_", "identifier"], "postprocess": 
-        d => ({ type: "member_node", object: d[0], property: d[4] })
-                },
     {"name": "call_statement", "symbols": ["function_name", "_", {"literal":"("}, "_", "parameter_list", "_", {"literal":")"}], "postprocess": 
         d => {
             return ({

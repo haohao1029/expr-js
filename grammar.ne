@@ -4,11 +4,9 @@ const moo = require("moo");
 const lexer = moo.compile({
     exponent: ["^", "**"],
     additive_operator: ["+", "-"],
-    nullish_coalescing_operator: "??",
     multiplicative_operator: ["*", "/", "%"],
-    comparison_operator: ["<", "<=", ">", ">=", "==", "!="],
-    dot: ".",
-    optional_chaining: "?.",
+    comparison_operator: ["<", "<=", ">", ">=", "==", "!=", "??"],
+    dot_member_operator: [".", "?."],
     ws: /[ \t]+/,
     nl: { match: "\n", lineBreaks: true },
     question_mark: "?",
@@ -108,14 +106,14 @@ top_level_statements
         %}
 
 top_level_statement
-    ->  expression      {% id %}
-    | statement      {% id %}
+    ->  expression    {% id %}
+    | statement       {% id %}
 
 statement
     -> line_comment   {% id %}
 
 expression
-    -> ternary_expr {% id %}
+    ->  ternary_expr   {% id %}
 
 ternary_expr
     -> base_expr _ %question_mark _ ternary_expr _ %colon _ ternary_expr
@@ -124,26 +122,60 @@ ternary_expr
 
 base_expr
     -> data_type      {% id %}
-    | nullish_coalescing_expr {% id %}
     | comparison_expr {% id %}
     | additive_expr   {% id %}
-    | member_expr                {% id %} 
-
-nullish_coalescing_expr
-    -> comparison_expr                     {% id %}
-    | nullish_coalescing_expr _ %nullish_coalescing_operator _ comparison_expr
-        {% d => ({ type: "binary_node", operator: d[2].value, left: d[0], right: d[4] }) %}
 
 data_type
-    -> nil            {% id %}
-    | number          {% id %}
-    | string_literal  {% id %}
-    | array           {% id %}
-    | boolean_literal {% id %}
-    | map             {% id %}
-    | call_statement  {% id %}
-    
-    
+    -> dot_member_operator {% id %} 
+    | call_statement       {% id %}
+    | nil                  {% id %}
+    | number               {% id %}
+    | string_literal       {% id %}
+    | array                {% id %}
+    | boolean_literal      {% id %}
+    | map                  {% id %}
+
+bracket_operator
+    -> dot_member_operator "[" _ bracket_value _ "]" 
+        {% d => ({
+            type: "member_node",
+            node: d[0],
+            property: d[3]
+        }) %}
+
+bracket_value
+    -> string_literal   {% id %}
+    | number            {% id %}
+    |  %colon _ number 
+        {% d => ({ type: "slice_node", from: null, to: d[2] }) %}
+    | number _ %colon 
+        {% d => ({ type: "slice_node", from: d[0], to: null }) %}
+    | number _ %colon _ number 
+        {% d => ({ type: "slice_node", from: d[0], to: d[4] }) %}
+    | %colon {% d => ({ type: "slice_node", from: null, to: null }) %}
+
+dot_member_operator
+    -> dot_member_base_expression %dot_member_operator identifier
+        {% d => ({
+            type: "member_node",
+            node: d[0],
+            property: d[2].value,
+            optional: d[1].type === "dot_member_operator" && d[1].value === "?."
+        }) %}
+    | dot_member_base_expression "[" _ bracket_value _ "]"
+        {% d => ({
+            type: "member_node",
+            node: d[0],
+            property: d[3],
+        }) %}
+
+dot_member_base_expression
+    -> dot_member_operator   {% id %}
+    | identifier             {% id %}
+    | map                    {% id %}
+    | array                  {% id %}
+
+
 comparison_expr
     -> additive_expr {% id %}
     | comparison_expr _ %comparison_operator _ additive_expr
@@ -170,15 +202,6 @@ primary_expr
     | "!" expression {% d => ({ type: "unary_node", operator: "!", operand: d[1] }) %}
     | data_type {% id %} 
 
-member_expr
-    -> base_expr _ %dot _ identifier 
-        {%
-            d => ({ type: "member_node", object: d[0], property: d[4] })
-        %}
-    | member_expr _ %dot _ identifier  
-        {%
-            d => ({ type: "member_node", object: d[0], property: d[4] })
-        %}
 
 call_statement -> function_name _ "(" _ parameter_list _ ")" 
     {%

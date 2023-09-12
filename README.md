@@ -7,7 +7,6 @@ With this expressions editor, admin can define complex expression & logic withou
 ```javascript
 sum([1,2,3,4,5]) == 15 ? true : false
 split(" 1, 2 ")
-
 ```
 
 ## Supported Literals
