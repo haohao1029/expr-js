@@ -5,7 +5,7 @@ const lexer = moo.compile({
     exponent: ["^", "**"],
     additive_operator: ["+", "-"],
     multiplicative_operator: ["*", "/", "%"],
-    comparison_operator: ["<", "<=", ">", ">=", "==", "!=", "??"],
+    comparison_operator: ["<", "<=", ">", ">=", "==", "!=", "??", "matches", "contains", "startsWith", "endsWith"],
     dot_member_operator: [".", "?."],
     ws: /[ \t]+/,
     nl: { match: "\n", lineBreaks: true },
@@ -40,7 +40,7 @@ const lexer = moo.compile({
         value: s => Number(s)
     },
     identifier: {
-        match: /[a-z_][a-z_0-9]*/,
+    match: /[a-zA-Z_][a-zA-Z_0-9]*/,
     },
 });
 
@@ -121,9 +121,8 @@ ternary_expr
     | base_expr {% id %}
 
 base_expr
-    -> data_type      {% id %}
-    | comparison_expr {% id %}
-    | additive_expr   {% id %}
+    -> 
+    comparison_expr {% id %}
 
 data_type
     -> dot_member_operator {% id %} 
@@ -199,7 +198,7 @@ exponent_expr
 
 primary_expr
     -> "(" _ expression _ ")" {% d => d[2] %}
-    | "!" expression {% d => ({ type: "unary_node", operator: "!", operand: d[1] }) %}
+    # | "!" expression {% d => ({ type: "unary_node", operator: "!", operand: d[1] }) %}
     | data_type {% id %} 
 
 
